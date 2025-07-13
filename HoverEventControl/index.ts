@@ -12,18 +12,20 @@ export class HoverEventControl
   private onMouseEnterBind: (e: Event) => void;
   private onMouseLeaveBind: (e: Event) => void;
   private onScrollBind: (e: Event) => void;
-  private enterTimer: ReturnType<typeof setTimeout> | null;
-  private leaveTimer: ReturnType<typeof setTimeout> | null;
-  private scrollTimer: ReturnType<typeof setTimeout> | null;
-  private refreshTimer: ReturnType<typeof setInterval>;
-  private selectedControl: NodeList;
-  private selectedGallery: HTMLDivElement;
+  private enterTimer: ReturnType<typeof setTimeout> | null = null;
+  private leaveTimer: ReturnType<typeof setTimeout> | null = null;
+  private scrollTimer: ReturnType<typeof setTimeout> | null = null;
+  private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private selectedControls: NodeList;
+  private selectedGallery: HTMLDivElement | null = null;
   private refreshTrigger: boolean;
   private EnterOutput: boolean = false;
   private LeaveOutput: boolean = false;
   private index: string | null = "0";
-  private controlX: number;
-  private controlY: number;
+  private controlX: number = 0;
+  private controlY: number = 0;
+  private isDestroyed: boolean = false;
+
   constructor() {}
 
   public init(
@@ -33,73 +35,138 @@ export class HoverEventControl
     container: HTMLDivElement
   ): void {
     this.notifyOutputChanged = notifyOutputChanged;
+    this.updateProperties(context);
+    this.bindEventHandlers();
+    this.startControlRefresh();
+  }
+
+  private updateProperties(context: ComponentFramework.Context<IInputs>): void {
     this.controlName = context.parameters.controlName.raw || "";
     this.enterDelay = context.parameters.enterDelay.raw || 0;
     this.leaveDelay = context.parameters.leaveDelay.raw || 0;
     this.refreshTrigger = context.parameters.refreshTrigger.raw;
     this.enableEnterDelay = context.parameters.enableEnterDelay.raw;
     this.enableLeaveDelay = context.parameters.enableLeaveDelay.raw;
+  }
+
+  private bindEventHandlers(): void {
     this.onMouseEnterBind = this.onMouseEnter.bind(this);
     this.onMouseLeaveBind = this.onMouseLeave.bind(this);
     this.onScrollBind = this.onGalleryScroll.bind(this);
+  }
 
-    this.selectedControl = document.querySelectorAll(
-      "[data-control-name='" + this.controlName + "']"
-    );
+  private startControlRefresh(): void {
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+    }
+
     this.refreshTimer = setInterval(() => {
-      if (this.selectedControl.length !== 0) {
-        this.selectedControl = document.querySelectorAll(
-          "[data-control-name='" + this.controlName + "']"
-        );
-        for (let i = 0; i < this.selectedControl.length; i++) {
-          this.selectedControl[i].addEventListener(
-            "mouseenter",
-            this.onMouseEnter.bind(this)
-          );
-
-          this.selectedControl[i].addEventListener(
-            "mouseleave",
-            this.onMouseLeave.bind(this)
-          );
-          if (this.selectedControl.length > 1) {
-            this.selectedGallery = (
-              document.querySelector(
-                "[data-control-name='" + this.controlName + "']"
-              ) as HTMLDivElement
-            ).parentElement?.closest("[aria-label]") as HTMLDivElement;
-            this.selectedGallery.addEventListener(
-              "scroll",
-              this.onGalleryScroll.bind(this)
-            );
-          }
+      if (this.isDestroyed) {
+        if (this.refreshTimer) {
           clearInterval(this.refreshTimer);
+          this.refreshTimer = null;
         }
-      } else {
-        this.selectedControl = document.querySelectorAll(
-          "[data-control-name='" + this.controlName + "']"
-        );
+        return;
       }
+
+      this.refreshControls();
     }, 100);
   }
 
-  private onMouseEnter(event: Event): void {
-    if (this.leaveTimer != null) {
+  private refreshControls(): void {
+    const newControls = document.querySelectorAll(
+      `[data-control-name='${this.controlName}']`
+    );
+
+    // Only update if controls have changed
+    if (
+      newControls.length !== this.selectedControls?.length ||
+      newControls.length === 0
+    ) {
+      this.selectedControls = newControls;
+
+      if (newControls.length > 0) {
+        this.attachEventListeners();
+        this.setupGalleryScrollListener();
+
+        // Stop refresh timer once controls are found and attached
+        if (this.refreshTimer) {
+          clearInterval(this.refreshTimer);
+          this.refreshTimer = null;
+        }
+      }
+    }
+  }
+
+  private attachEventListeners(): void {
+    if (!this.selectedControls) return;
+
+    for (const control of Array.from(this.selectedControls)) {
+      control.addEventListener("mouseenter", this.onMouseEnterBind);
+      control.addEventListener("mouseleave", this.onMouseLeaveBind);
+    }
+  }
+
+  private detachEventListeners(): void {
+    if (!this.selectedControls) return;
+
+    for (const control of Array.from(this.selectedControls)) {
+      control.removeEventListener("mouseenter", this.onMouseEnterBind);
+      control.removeEventListener("mouseleave", this.onMouseLeaveBind);
+    }
+  }
+
+  private setupGalleryScrollListener(): void {
+    if (this.selectedControls.length > 1) {
+      const firstControl = document.querySelector(
+        `[data-control-name='${this.controlName}']`
+      ) as HTMLDivElement;
+
+      if (firstControl) {
+        this.selectedGallery = firstControl.parentElement?.closest(
+          "[aria-label]"
+        ) as HTMLDivElement;
+
+        if (this.selectedGallery) {
+          this.selectedGallery.addEventListener("scroll", this.onScrollBind);
+        }
+      }
+    }
+  }
+
+  private clearTimers(): void {
+    if (this.enterTimer) {
+      clearTimeout(this.enterTimer);
+      this.enterTimer = null;
+    }
+    if (this.leaveTimer) {
       clearTimeout(this.leaveTimer);
       this.leaveTimer = null;
     }
+    if (this.scrollTimer) {
+      clearTimeout(this.scrollTimer);
+      this.scrollTimer = null;
+    }
+  }
+
+  private onMouseEnter(event: Event): void {
+    this.clearTimers();
+
     this.enterTimer = setTimeout(
       () => {
+        if (this.isDestroyed) return;
+
         this.EnterOutput = true;
         this.LeaveOutput = false;
-        const e = event.target as HTMLDivElement;
-        this.controlX = e.getBoundingClientRect().x;
-        this.controlY = e.getBoundingClientRect().y;
-        const parent = e.closest("[aria-posinset]");
-        if (parent) {
-          this.index = parent.getAttribute("aria-posinset")
-            ? parent.getAttribute("aria-posinset")
-            : "0";
-        }
+
+        const target = event.target as HTMLDivElement;
+        const rect = target.getBoundingClientRect();
+        this.controlX = rect.x;
+        this.controlY = rect.y;
+
+        const parent = target.closest("[aria-posinset]");
+        this.index = parent?.getAttribute("aria-posinset") || "0";
+
         this.enterTimer = null;
         this.notifyOutputChanged();
       },
@@ -108,18 +175,19 @@ export class HoverEventControl
   }
 
   private onMouseLeave(event: Event): void {
-    if (this.enterTimer != null) {
+    if (this.enterTimer) {
       clearTimeout(this.enterTimer);
       this.enterTimer = null;
     }
+
     this.leaveTimer = setTimeout(
       () => {
+        if (this.isDestroyed) return;
+
         if (this.EnterOutput && !this.LeaveOutput) {
           this.EnterOutput = false;
           this.LeaveOutput = true;
-          this.index = "0";
-          this.controlX = 0;
-          this.controlY = 0;
+          this.resetPosition();
           this.notifyOutputChanged();
         }
       },
@@ -131,91 +199,56 @@ export class HoverEventControl
     if (this.EnterOutput || this.LeaveOutput) {
       this.EnterOutput = false;
       this.LeaveOutput = false;
-      this.index = "0";
-      this.controlX = 0;
-      this.controlY = 0;
+      this.resetPosition();
       this.notifyOutputChanged();
     }
-    if (this.scrollTimer !== null) {
+
+    if (this.scrollTimer) {
       clearTimeout(this.scrollTimer);
     }
+
     this.scrollTimer = setTimeout(() => {
-      for (let i = 0; i < this.selectedControl.length; i++) {
-        this.selectedControl[i].removeEventListener(
-          "mouseenter",
-          this.onMouseEnterBind
-        );
-        this.selectedControl[i].removeEventListener(
-          "mouseleave",
-          this.onMouseLeaveBind
-        );
-      }
-      this.selectedControl = document.querySelectorAll(
-        "[data-control-name='" + this.controlName + "']"
+      if (this.isDestroyed) return;
+
+      this.detachEventListeners();
+      this.selectedControls = document.querySelectorAll(
+        `[data-control-name='${this.controlName}']`
       );
-      for (let i = 0; i < this.selectedControl.length; i++) {
-        this.selectedControl[i].addEventListener(
-          "mouseenter",
-          this.onMouseEnterBind
-        );
-        this.selectedControl[i].addEventListener(
-          "mouseleave",
-          this.onMouseLeaveBind
-        );
-      }
+      this.attachEventListeners();
     }, 100);
   }
 
-  public updateView(context: ComponentFramework.Context<IInputs>): void {
-    if (
+  private resetPosition(): void {
+    this.index = "0";
+    this.controlX = 0;
+    this.controlY = 0;
+  }
+
+  private hasParametersChanged(
+    context: ComponentFramework.Context<IInputs>
+  ): boolean {
+    return (
       context.parameters.controlName.raw !== this.controlName ||
       context.parameters.enterDelay.raw !== this.enterDelay ||
       context.parameters.leaveDelay.raw !== this.leaveDelay ||
       context.parameters.refreshTrigger.raw !== this.refreshTrigger ||
       context.parameters.enableEnterDelay.raw !== this.enableEnterDelay ||
       context.parameters.enableLeaveDelay.raw !== this.enableLeaveDelay
-    ) {
-      for (let i = 0; i < this.selectedControl.length; i++) {
-        this.selectedControl[i].removeEventListener(
-          "mouseenter",
-          this.onMouseEnterBind
-        );
-        this.selectedControl[i].removeEventListener(
-          "mouseleave",
-          this.onMouseLeaveBind
-        );
-      }
-      this.controlName = context.parameters.controlName.raw || "";
-      this.enterDelay = context.parameters.enterDelay.raw || 0;
-      this.leaveDelay = context.parameters.leaveDelay.raw || 0;
-      this.enableEnterDelay = context.parameters.enableEnterDelay.raw;
-      this.enableLeaveDelay = context.parameters.enableLeaveDelay.raw;
-      this.refreshTrigger = context.parameters.refreshTrigger.raw;
-      this.selectedControl = document.querySelectorAll(
-        "[data-control-name='" + this.controlName + "']"
+    );
+  }
+
+  public updateView(context: ComponentFramework.Context<IInputs>): void {
+    if (this.hasParametersChanged(context)) {
+      this.detachEventListeners();
+      this.updateProperties(context);
+
+      this.selectedControls = document.querySelectorAll(
+        `[data-control-name='${this.controlName}']`
       );
-      if (this.selectedControl.length > 1) {
-        this.selectedGallery = (
-          document.querySelector(
-            "[data-control-name='" + this.controlName + "']"
-          ) as HTMLDivElement
-        ).parentElement?.closest("[aria-label]") as HTMLDivElement;
 
-        this.selectedGallery.addEventListener("scroll", this.onScrollBind);
-      }
-      this.index = "0";
-
-      for (let i = 0; i < this.selectedControl.length; i++) {
-        this.selectedControl[i].addEventListener(
-          "mouseenter",
-          this.onMouseEnterBind
-        );
-
-        this.selectedControl[i].addEventListener(
-          "mouseleave",
-          this.onMouseLeaveBind
-        );
-      }
+      this.setupGalleryScrollListener();
+      this.resetPosition();
+      this.attachEventListeners();
     }
   }
 
@@ -230,16 +263,19 @@ export class HoverEventControl
   }
 
   public destroy(): void {
-    for (let i = 0; i < this.selectedControl.length; i++) {
-      this.selectedControl[i].removeEventListener(
-        "mouseenter",
-        this.onMouseEnterBind
-      );
-      this.selectedControl[i].removeEventListener(
-        "mouseleave",
-        this.onMouseLeaveBind
-      );
+    this.isDestroyed = true;
+    this.clearTimers();
+
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
     }
-    this.selectedGallery.removeEventListener("scroll", this.onGalleryScroll);
+
+    this.detachEventListeners();
+
+    if (this.selectedGallery) {
+      this.selectedGallery.removeEventListener("scroll", this.onScrollBind);
+      this.selectedGallery = null;
+    }
   }
 }
