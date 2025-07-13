@@ -1,53 +1,21 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest>
   <control namespace="CG" constructor="HoverEventControl" version="0.0.1" display-name-key="HoverEventControl" description-key="HoverEventControl description" control-type="standard" >
-    <!--external-service-usage node declares whether this 3rd party PCF control is using external service or not, if yes, this control will be considered as premium and please also add the external domain it is using.
-    If it is not using any external service, please set the enabled="false" and DO NOT add any domain below. The "enabled" will be false by default.
-    Example1:
-      <external-service-usage enabled="true">
-        <domain>www.Microsoft.com</domain>
-      </external-service-usage>
-    Example2:
-      <external-service-usage enabled="false">
-      </external-service-usage>
-    -->
-    <external-service-usage enabled="false">
-      <!--UNCOMMENT TO ADD EXTERNAL DOMAINS
-      <domain></domain>
-      <domain></domain>
-      -->
+ <external-service-usage enabled="false">
     </external-service-usage>
-    <!-- property node identifies a specific, configurable piece of data that the control expects from CDS -->
-    <property name="sampleProperty" display-name-key="Property_Display_Key" description-key="Property_Desc_Key" of-type="SingleLine.Text" usage="bound" required="true" />
-    <!--
-      Property node's of-type attribute can be of-type-group attribute.
-      Example:
-      <type-group name="numbers">
-        <type>Whole.None</type>
-        <type>Currency</type>
-        <type>FP</type>
-        <type>Decimal</type>
-      </type-group>
-      <property name="sampleProperty" display-name-key="Property_Display_Key" description-key="Property_Desc_Key" of-type-group="numbers" usage="bound" required="true" />
-    -->
+      <property name="controlName" display-name-key="Control Name" description-key="Control Name" of-type="SingleLine.Text" usage="input" />
+      <property name="enterDelay" display-name-key="Enter Delay" description-key="Enter Delay" of-type="Whole.None" usage="input" /> 
+      <property name="leaveDelay" display-name-key="Leave Delay" description-key="Leave Delay" of-type="Whole.None" usage="input" />
+      <property name="enableEnterDelay" display-name-key="Enable Enter Delay" description-key="To be called to activate enterDelay" of-type="TwoOptions" usage="input" />
+      <property name="enableLeaveDelay" display-name-key="Enable Leave Delay" description-key="To be called to activate leaveDelay" of-type="TwoOptions" usage="input" />    
+      <property name="refreshTrigger" display-name-key="Refresh Trigger" description-key="To be called when items change in the gallery" of-type="TwoOptions" usage="input" />     
+      <property name="hasEntered" display-name-key="Has entered" description-key="Control Name" of-type="TwoOptions" usage="output" />
+      <property name="hasLeft" display-name-key="Has Left" description-key="Has Left" of-type="TwoOptions" usage="output" />
+      <property name="index" display-name-key="Index" description-key="Index" of-type="Whole.None" usage="output" />
+      <property name="controlX" display-name-key="controlX" description-key="controlX" of-type="Whole.None" usage="output" />
+      <property name="controlY" display-name-key="controlY" description-key="controlY" of-type="Whole.None" usage="output" />
     <resources>
       <code path="index.ts" order="1"/>
-      <!-- UNCOMMENT TO ADD MORE RESOURCES
-      <css path="css/HoverEventControl.css" order="1" />
-      <resx path="strings/HoverEventControl.1033.resx" version="1.0.0" />
-      -->
     </resources>
-    <!-- UNCOMMENT TO ENABLE THE SPECIFIED API
-    <feature-usage>
-      <uses-feature name="Device.captureAudio" required="true" />
-      <uses-feature name="Device.captureImage" required="true" />
-      <uses-feature name="Device.captureVideo" required="true" />
-      <uses-feature name="Device.getBarcodeValue" required="true" />
-      <uses-feature name="Device.getCurrentPosition" required="true" />
-      <uses-feature name="Device.pickFile" required="true" />
-      <uses-feature name="Utility" required="true" />
-      <uses-feature name="WebAPI" required="true" />
-    </feature-usage>
-    -->
   </control>
 </manifest>
