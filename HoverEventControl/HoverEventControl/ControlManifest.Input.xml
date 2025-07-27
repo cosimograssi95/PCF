@@ -8,7 +8,6 @@
       <property name="leaveDelay" display-name-key="Leave Delay" description-key="Delay (in ms) before triggering the Leave event" of-type="Whole.None" usage="input" />
       <property name="enableEnterDelay" display-name-key="Enable Enter Delay" description-key="Enables a delay (in ms) before triggering the Enter event" of-type="TwoOptions" usage="input" />
       <property name="enableLeaveDelay" display-name-key="Enable Leave Delay" description-key="Enables a delay (in ms) before triggering the Leave event" of-type="TwoOptions" usage="input" />
-      <property name="refreshTrigger" display-name-key="Refresh Trigger" description-key="When items in the gallery change, you may need to refresh all the listeners for that gallery" of-type="TwoOptions" usage="input" />
       <property name="hasEntered" display-name-key="Has entered" description-key="Indicates whether the pointer has entered the control" of-type="TwoOptions" usage="output" />
       <property name="hasLeft" display-name-key="Has Left" description-key="Indicates whether the pointer has left the control" of-type="TwoOptions" usage="output" />
       <property name="innerGalleryIndex" display-name-key="Inner Gallery Index" description-key="Index of the control within the immediate (inner) gallery, if any" of-type="Whole.None" usage="output" />

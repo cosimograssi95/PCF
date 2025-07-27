@@ -19,7 +19,6 @@ export class HoverEventControl
   private selectedControls: NodeList;
   private selectedInnerGallery: HTMLDivElement | null = null;
   private selectedOuterGallery: HTMLDivElement | null = null;
-  private refreshTrigger: boolean;
   private EnterOutput: boolean = false;
   private LeaveOutput: boolean = false;
   private innerGalleryIndex: string | null = "0";
@@ -49,7 +48,6 @@ export class HoverEventControl
     this.controlName = context.parameters.controlName.raw || "";
     this.enterDelay = context.parameters.enterDelay.raw || 0;
     this.leaveDelay = context.parameters.leaveDelay.raw || 0;
-    this.refreshTrigger = context.parameters.refreshTrigger.raw;
     this.enableEnterDelay = context.parameters.enableEnterDelay.raw;
     this.enableLeaveDelay = context.parameters.enableLeaveDelay.raw;
   }
@@ -288,7 +286,6 @@ export class HoverEventControl
       context.parameters.controlName.raw !== this.controlName ||
       context.parameters.enterDelay.raw !== this.enterDelay ||
       context.parameters.leaveDelay.raw !== this.leaveDelay ||
-      context.parameters.refreshTrigger.raw !== this.refreshTrigger ||
       context.parameters.enableEnterDelay.raw !== this.enableEnterDelay ||
       context.parameters.enableLeaveDelay.raw !== this.enableLeaveDelay
     );
