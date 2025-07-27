@@ -1,6 +1,6 @@
 ## Plugins
 
-This repository contains different PCF components for PowerApps.
+This repository includes a collection of PCF components for PowerApps.
 
 ## Project Structure
 
