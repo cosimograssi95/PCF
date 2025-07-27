@@ -33,7 +33,7 @@ You can also introduce a delay for these events by enabling `enableEnterDelay` a
 
 ## How to create and use the PCF
 
-> ⚠️ Make sure Node.js and the PAC CLI are installed before proceeding.
+> ⚠️ Make sure Node.js, PAC CLI and Visual Studio Build Tools are installed before proceeding.
 
 ### Clone the repository
 
