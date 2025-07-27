@@ -36,7 +36,6 @@ export class HoverEventControl
     state: ComponentFramework.Dictionary,
     container: HTMLDivElement
   ): void {
-    console.log("haloa");
     this.notifyOutputChanged = notifyOutputChanged;
     this.updateProperties(context);
     this.bindEventHandlers();
@@ -229,6 +228,7 @@ export class HoverEventControl
   }
 
   private onGalleryScroll(event: Event): void {
+    const retryInterval = 100;
     if (this.EnterOutput || this.LeaveOutput) {
       this.EnterOutput = false;
       this.LeaveOutput = false;
@@ -244,8 +244,7 @@ export class HoverEventControl
       if (this.isDestroyed) return;
 
       let retries = 0;
-      const maxRetries = 30;
-      const retryInterval = 200;
+      const maxRetries = 10;
 
       const tryRefresh = () => {
         const controls = document.querySelectorAll(
@@ -256,20 +255,17 @@ export class HoverEventControl
           this.detachEventListeners();
           this.selectedControls = controls;
           this.attachEventListeners();
-          console.log("Scroll refresh success.");
-          return; // success, stop retrying
+          return;
         }
 
         retries++;
         if (retries < maxRetries) {
           setTimeout(tryRefresh, retryInterval);
-        } else {
-          console.warn("Scroll refresh failed after retries.");
         }
       };
 
       tryRefresh();
-    }, 150); // Wait a moment after scroll ends
+    }, retryInterval);
   }
 
   private resetPosition(): void {
