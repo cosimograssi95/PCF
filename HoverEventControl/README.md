@@ -4,7 +4,9 @@
 
 This PCF adds **hover event** support to Power Apps controls.
 
-The plugin supports advanced scenarios such as:
+It is a technical component with no user interface.
+
+Key features include support for advanced scenarios such as:
 
 - Galleries and nested galleries hover events.
 - Custom tooltips and svg animations.
