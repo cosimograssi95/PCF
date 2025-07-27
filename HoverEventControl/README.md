@@ -17,6 +17,18 @@ The plugin supports advanced scenarios such as:
 
 ---
 
+## How it works
+
+After adding the custom control to your page, you can specify the `controlName` to track.
+
+When the user hovers over the control, the `hasEntered` property will be set; when the mouse leaves, `hasLeft` will be set.
+
+If the control is placed inside a gallery, the `innerGalleryIndex` and `outerGalleryIndex` properties will output the index positions of the control within the respective galleries.
+
+You can also introduce a delay for these events by enabling `enableEnterDelay` and/or `enableLeaveDelay`, and setting the corresponding `enterDelay` and `leaveDelay` values.
+
+---
+
 ## How to create and use the PCF
 
 > ⚠️ Make sure Node.js and the PAC CLI are installed before proceeding.
