@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest>
-  <control namespace="CG" constructor="HoverEventControl" version="0.0.1" display-name-key="HoverEventControl" description-key="HoverEventControl description" control-type="standard" >
+  <control namespace="CG" constructor="HoverEventControl" version="0.0.1" display-name-key="HoverEventControl" description-key="HoverEventControl grants the ability to track hover events on standard PowerApps components" control-type="standard" >
  <external-service-usage enabled="false">
     </external-service-usage>
-      <property name="controlName" display-name-key="Control Name" description-key="Control Name" of-type="SingleLine.Text" usage="input" />
-      <property name="enterDelay" display-name-key="Enter Delay" description-key="Enter Delay" of-type="Whole.None" usage="input" /> 
-      <property name="leaveDelay" display-name-key="Leave Delay" description-key="Leave Delay" of-type="Whole.None" usage="input" />
-      <property name="enableEnterDelay" display-name-key="Enable Enter Delay" description-key="To be called to activate enterDelay" of-type="TwoOptions" usage="input" />
-      <property name="enableLeaveDelay" display-name-key="Enable Leave Delay" description-key="To be called to activate leaveDelay" of-type="TwoOptions" usage="input" />    
-      <property name="refreshTrigger" display-name-key="Refresh Trigger" description-key="To be called when items change in the gallery" of-type="TwoOptions" usage="input" />     
-      <property name="hasEntered" display-name-key="Has entered" description-key="Control Name" of-type="TwoOptions" usage="output" />
-      <property name="hasLeft" display-name-key="Has Left" description-key="Has Left" of-type="TwoOptions" usage="output" />
-      <property name="index" display-name-key="Index" description-key="Index" of-type="Whole.None" usage="output" />
-      <property name="controlX" display-name-key="controlX" description-key="controlX" of-type="Whole.None" usage="output" />
-      <property name="controlY" display-name-key="controlY" description-key="controlY" of-type="Whole.None" usage="output" />
+      <property name="controlName" display-name-key="Control Name" description-key="Name of the PowerApps control to track" of-type="SingleLine.Text" usage="input" />
+      <property name="enterDelay" display-name-key="Enter Delay" description-key="Delay (in ms) before triggering the Enter event" of-type="Whole.None" usage="input" /> 
+      <property name="leaveDelay" display-name-key="Leave Delay" description-key="Delay (in ms) before triggering the Leave event" of-type="Whole.None" usage="input" />
+      <property name="enableEnterDelay" display-name-key="Enable Enter Delay" description-key="Enables a delay (in ms) before triggering the Enter event" of-type="TwoOptions" usage="input" />
+      <property name="enableLeaveDelay" display-name-key="Enable Leave Delay" description-key="Enables a delay (in ms) before triggering the Leave event" of-type="TwoOptions" usage="input" />
+      <property name="refreshTrigger" display-name-key="Refresh Trigger" description-key="When items in the gallery change, you may need to refresh all the listeners for that gallery" of-type="TwoOptions" usage="input" />
+      <property name="hasEntered" display-name-key="Has entered" description-key="Indicates whether the pointer has entered the control" of-type="TwoOptions" usage="output" />
+      <property name="hasLeft" display-name-key="Has Left" description-key="Indicates whether the pointer has left the control" of-type="TwoOptions" usage="output" />
+      <property name="innerGalleryIndex" display-name-key="Inner Gallery Index" description-key="Index of the control within the immediate (inner) gallery, if any" of-type="Whole.None" usage="output" />
+      <property name="outerGalleryIndex" display-name-key="Outer Gallery Index" description-key="Index of the control within the external (outer) gallery, if any" of-type="Whole.None" usage="output" /> 
+      <property name="controlX" display-name-key="controlX" description-key="X-coordinate of the control" of-type="Whole.None" usage="output" />
+      <property name="controlY" display-name-key="controlY" description-key="Y-coordinate of the control" of-type="Whole.None" usage="output" />
     <resources>
       <code path="index.ts" order="1"/>
     </resources>

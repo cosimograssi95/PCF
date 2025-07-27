@@ -17,13 +17,16 @@ export class HoverEventControl
   private scrollTimer: ReturnType<typeof setTimeout> | null = null;
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
   private selectedControls: NodeList;
-  private selectedGallery: HTMLDivElement | null = null;
+  private selectedInnerGallery: HTMLDivElement | null = null;
+  private selectedOuterGallery: HTMLDivElement | null = null;
   private refreshTrigger: boolean;
   private EnterOutput: boolean = false;
   private LeaveOutput: boolean = false;
-  private index: string | null = "0";
+  private innerGalleryIndex: string | null = "0";
+  private outerGalleryIndex: string | null = "0";
   private controlX: number = 0;
   private controlY: number = 0;
+  private observer: MutationObserver | null = null;
   private isDestroyed: boolean = false;
 
   constructor() {}
@@ -34,10 +37,12 @@ export class HoverEventControl
     state: ComponentFramework.Dictionary,
     container: HTMLDivElement
   ): void {
+    console.log("haloa");
     this.notifyOutputChanged = notifyOutputChanged;
     this.updateProperties(context);
     this.bindEventHandlers();
-    this.startControlRefresh();
+    this.attachListenersToExistingControls();
+    this.startMutationObserver();
   }
 
   private updateProperties(context: ComponentFramework.Context<IInputs>): void {
@@ -55,46 +60,51 @@ export class HoverEventControl
     this.onScrollBind = this.onGalleryScroll.bind(this);
   }
 
-  private startControlRefresh(): void {
-    if (this.refreshTimer) {
-      clearInterval(this.refreshTimer);
-    }
-
-    this.refreshTimer = setInterval(() => {
-      if (this.isDestroyed) {
-        if (this.refreshTimer) {
-          clearInterval(this.refreshTimer);
-          this.refreshTimer = null;
-        }
-        return;
-      }
-
-      this.refreshControls();
-    }, 100);
-  }
-
-  private refreshControls(): void {
-    const newControls = document.querySelectorAll(
+  private attachListenersToExistingControls(): void {
+    const controls = document.querySelectorAll(
       `[data-control-name='${this.controlName}']`
     );
+    controls.forEach((control) => this.attachEventListenerToElement(control));
+  }
 
-    // Only update if controls have changed
-    if (
-      newControls.length !== this.selectedControls?.length ||
-      newControls.length === 0
-    ) {
-      this.selectedControls = newControls;
+  private startMutationObserver(): void {
+    if (this.observer) {
+      this.observer.disconnect();
+    }
 
-      if (newControls.length > 0) {
-        this.attachEventListeners();
-        this.setupGalleryScrollListener();
+    this.observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        mutation.addedNodes.forEach((node) => {
+          if (
+            node instanceof HTMLElement &&
+            node.hasAttribute("data-control-name") &&
+            node.getAttribute("data-control-name") === this.controlName
+          ) {
+            this.attachEventListenerToElement(node);
+          }
 
-        // Stop refresh timer once controls are found and attached
-        if (this.refreshTimer) {
-          clearInterval(this.refreshTimer);
-          this.refreshTimer = null;
-        }
+          if (node instanceof HTMLElement) {
+            const descendants = node.querySelectorAll(
+              `[data-control-name='${this.controlName}']`
+            );
+            descendants.forEach((el) => this.attachEventListenerToElement(el));
+          }
+        });
       }
+    });
+
+    this.observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+  }
+
+  private attachEventListenerToElement(element: Element): void {
+    if (element instanceof HTMLElement) {
+      element.removeEventListener("mouseenter", this.onMouseEnterBind);
+      element.removeEventListener("mouseleave", this.onMouseLeaveBind);
+      element.addEventListener("mouseenter", this.onMouseEnterBind);
+      element.addEventListener("mouseleave", this.onMouseLeaveBind);
     }
   }
 
@@ -123,12 +133,27 @@ export class HoverEventControl
       ) as HTMLDivElement;
 
       if (firstControl) {
-        this.selectedGallery = firstControl.parentElement?.closest(
-          "[aria-label]"
+        this.selectedInnerGallery = firstControl.parentElement?.closest(
+          ".virtualized-gallery[role='list'][data-control-part='gallery-window']"
         ) as HTMLDivElement;
 
-        if (this.selectedGallery) {
-          this.selectedGallery.addEventListener("scroll", this.onScrollBind);
+        if (this.selectedInnerGallery) {
+          this.selectedInnerGallery.addEventListener(
+            "scroll",
+            this.onScrollBind
+          );
+
+          this.selectedOuterGallery =
+            this.selectedInnerGallery.parentElement?.closest(
+              ".virtualized-gallery[role='list'][data-control-part='gallery-window']"
+            ) as HTMLDivElement;
+
+          if (this.selectedOuterGallery) {
+            this.selectedOuterGallery.addEventListener(
+              "scroll",
+              this.onScrollBind
+            );
+          }
         }
       }
     }
@@ -164,8 +189,18 @@ export class HoverEventControl
         this.controlX = rect.x;
         this.controlY = rect.y;
 
-        const parent = target.closest("[aria-posinset]");
-        this.index = parent?.getAttribute("aria-posinset") || "0";
+        const innerParent = target.closest(
+          '[aria-posinset][role="listitem"][data-control-part="gallery-item"]'
+        );
+
+        this.innerGalleryIndex =
+          innerParent?.getAttribute("aria-posinset") || "0";
+        const outerParent = innerParent?.parentElement?.closest(
+          '[aria-posinset][role="listitem"][data-control-part="gallery-item"]'
+        );
+
+        this.outerGalleryIndex =
+          outerParent?.getAttribute("aria-posinset") || "0";
 
         this.enterTimer = null;
         this.notifyOutputChanged();
@@ -210,16 +245,38 @@ export class HoverEventControl
     this.scrollTimer = setTimeout(() => {
       if (this.isDestroyed) return;
 
-      this.detachEventListeners();
-      this.selectedControls = document.querySelectorAll(
-        `[data-control-name='${this.controlName}']`
-      );
-      this.attachEventListeners();
-    }, 100);
+      let retries = 0;
+      const maxRetries = 30;
+      const retryInterval = 200;
+
+      const tryRefresh = () => {
+        const controls = document.querySelectorAll(
+          `[data-control-name='${this.controlName}']`
+        );
+
+        if (controls.length > 0) {
+          this.detachEventListeners();
+          this.selectedControls = controls;
+          this.attachEventListeners();
+          console.log("Scroll refresh success.");
+          return; // success, stop retrying
+        }
+
+        retries++;
+        if (retries < maxRetries) {
+          setTimeout(tryRefresh, retryInterval);
+        } else {
+          console.warn("Scroll refresh failed after retries.");
+        }
+      };
+
+      tryRefresh();
+    }, 150); // Wait a moment after scroll ends
   }
 
   private resetPosition(): void {
-    this.index = "0";
+    this.innerGalleryIndex = "0";
+    this.outerGalleryIndex = "0";
     this.controlX = 0;
     this.controlY = 0;
   }
@@ -256,7 +313,8 @@ export class HoverEventControl
     return {
       hasEntered: this.EnterOutput,
       hasLeft: this.LeaveOutput,
-      index: Number(this.index),
+      innerGalleryIndex: Number(this.innerGalleryIndex),
+      outerGalleryIndex: Number(this.outerGalleryIndex),
       controlX: this.controlX,
       controlY: this.controlY,
     };
@@ -273,9 +331,20 @@ export class HoverEventControl
 
     this.detachEventListeners();
 
-    if (this.selectedGallery) {
-      this.selectedGallery.removeEventListener("scroll", this.onScrollBind);
-      this.selectedGallery = null;
+    if (this.selectedInnerGallery) {
+      this.selectedInnerGallery.removeEventListener(
+        "scroll",
+        this.onScrollBind
+      );
+      this.selectedInnerGallery = null;
+    }
+
+    if (this.selectedOuterGallery) {
+      this.selectedOuterGallery.removeEventListener(
+        "scroll",
+        this.onScrollBind
+      );
+      this.selectedOuterGallery = null;
     }
   }
 }
